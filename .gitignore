@@ -1,0 +1,40 @@
+## Ignore Visual Studio temporary files, build results, and
+## user-specific files
+
+# Build results
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+*.log
+
+# NuGet packages
+*.nupkg
+*.snupkg
+*.nuspec
+packages/
+# NuGet v3
+*.nuget.props
+*.nuget.targets
+
+# Visual Studio files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider / JetBrains IDE
+.idea/
+
+# VS Code workspace
+.vscode/
+
+# Build configuration
+*.Build.cs
+*.props
+*.targets
+
+# Web projects
+project.lock.json
+project.fragment.lock.json
+artifacts/
+wwwroot/d
