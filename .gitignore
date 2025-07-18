@@ -17,6 +17,7 @@ packages/
 *.nuget.targets
 
 # Visual Studio files
+*.vs/
 *.user
 *.suo
 *.userosscache
