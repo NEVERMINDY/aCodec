@@ -10,8 +10,8 @@ namespace aCodec.ImageType
     {
         #region IImage properties
 
-        public int Width { get; set; }
-        public int Height { get; set; }
+        public ushort Width { get; set; }
+        public ushort Height { get; set; }
         public Memory<byte> Data { get; set; }
 
         #endregion
@@ -20,7 +20,9 @@ namespace aCodec.ImageType
 
         #endregion
 
-        public Jpeg()
+        public Jpeg() { }
+
+        public Jpeg(ushort height, ushort width, byte[] data)
         {
 
         }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 using aCodec.ImageType;
@@ -9,6 +10,9 @@ namespace aCodec.ImageParser
 {
     internal class JpegParser : IJpegParser
     {
+        #region private fields
+        private readonly byte _jpegPrefix = 0xFF;
+        #endregion
 
         #region IJPeg Parser properties
         public Dictionary<ushort, string> Marker { get; set; } = new(){
@@ -35,21 +39,128 @@ namespace aCodec.ImageParser
 
             try{
                 using FileStream fs = new(input, FileMode.Open, FileAccess.Read);
-                using BinaryReader reader = new BinaryReader(fs);
+                using BinaryReader reader = new BinaryReader(fs); 
+
+                ushort marker = ReadMarker(reader);
+                if (marker != 0xFFD8) 
+                {
+                    Console.WriteLine($"{Path.GetFileName(input)} is not a jpeg file. (missing SOI)");
+                }
+
+                ushort height, width;
+                byte[] imageData;
+                Jpeg jpeg = new Jpeg();
+                while (reader.BaseStream.Position < reader.BaseStream.Length)
+                {
+                    marker = ReadMarker(reader);
+                    // EOI
+                    if (marker == 0xFFD9)
+                    {
+                        Console.WriteLine($"Marker: {marker: X4} - {Marker[marker]}");
+                    }
+
+                    //SOF0
+                    if (marker == 0xFFC0)
+                    {
+                        (height, width) = ParseSOF0(reader);
+                        jpeg.Width = width;
+                        jpeg.Height = height;
+                    }
+                    //SOS (start of scan)
+                    else if(marker == 0xFFDA)
+                    {
+                        imageData = ReadCompressedData(reader);
+                        jpeg.Data = imageData;
+                    }
+                    else
+                    {
+                        int length = reader.ReadUInt16();
+                        reader.BaseStream.Seek(length - 2, SeekOrigin.Current);
+                    }
+                }
+                return jpeg;
             }
             catch(Exception ex){
                 Console.WriteLine(ex.ToString());
-                //todo: return an empty image
+                byte[] fakeData = new byte[1024];
+                //return a fake jpeg
+                return new Jpeg(0, 0, fakeData);
             }
-            
-            var jpeg = new Jpeg();
-            return jpeg;
+
         }
 
         #region private methods
 
         private ushort ReadMarker(BinaryReader reader){
+            byte code;
+            code = reader.ReadByte();
+            //keep reading until first 0xFF
+            while(code != _jpegPrefix)
+            {
+                code = reader.ReadByte();
+            }//code = 0xFF
+
+            //keep reading until code byte 
+            while (code == 0xFF)
+            {
+                code = reader.ReadByte();
+            }//code is the first byte after 0xFF(s)
+
+            return (ushort)((_jpegPrefix << 8) | code);
+        }
+
+        private (ushort, ushort) ParseSOF0(BinaryReader reader) 
+        {
+            ushort length = reader.ReadUInt16();    //segment length
+            byte precision = reader.ReadByte();     //precision, usually 8(bit)
+            ushort height = reader.ReadUInt16();    
+            ushort width = reader.ReadUInt16();
+            byte components = reader.ReadByte();    // usually 3 (YCbCr)
+
+            /*
+             * length: 2 bytes,
+             * precision: 1 byte,
+             * height: 2 bytes,
+             * width: 2 bytes,
+             * components: 1 byte.
+             * 8 bytes in total.
+             */
+            reader.BaseStream.Seek(length- (2+1+2+2+1), SeekOrigin.Current);
+
+            return (width, height);
+        }
+
+        private byte[] ReadCompressedData(BinaryReader reader) 
+        {
+            using MemoryStream ms = new MemoryStream();
+
             
+            while (reader.BaseStream.Position < reader.BaseStream.Length)
+            {
+                byte b = reader.ReadByte();
+
+                if (b != 0xFF)
+                {
+                    ms.WriteByte(b);
+                    continue;
+                }
+                //b = 0xFF
+                byte next = reader.ReadByte();
+                
+                if (next == 0x00) { 
+                    ms.WriteByte(0xFF);
+                    continue;
+                } else if(next == 0xD9)
+                {
+                    break;
+                }
+                else//unexpected marker
+                {
+                    throw new Exception($"Unexpected marker FF {next: X2} inside compressed data.");
+                }
+            }
+
+            return ms.ToArray();
         }
 
         #endregion

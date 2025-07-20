@@ -2,8 +2,8 @@
 
 namespace aCodec.ImageType {
     internal interface IImage {
-        int Height   {  get; }
-        int Width    {  get; }
+        ushort Height   {  get; }
+        ushort Width    {  get; }
         Memory<byte> Data  {  get; }
 
     }
