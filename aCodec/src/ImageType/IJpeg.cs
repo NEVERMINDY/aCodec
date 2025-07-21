@@ -8,6 +8,8 @@ namespace aCodec.ImageType
 {
     internal interface IJpeg : IImage
     {
+        public void AddQuantizationTable(QuantizationTable qt);
 
+        public void AddHuffmanTable(HuffmanTable ht);
     }
 }
