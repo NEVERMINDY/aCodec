@@ -230,7 +230,7 @@ namespace aCodec.ImageParser
             var symbolCount = 0;
             for (var i=0; i<16; i++)
             {
-                if (bytesRead >= length) { throw new Exception($"Error when parsing DHT code. (wrong DHT)"); }
+                if (bytesRead >= length) { throw new Exception($"Error when parsing DHT code. (wrong code array)"); }
                 byte count = reader.ReadByte();
                 bytesRead++;
                 huffmanTable.CodeLengths.Add(count);
@@ -238,13 +238,13 @@ namespace aCodec.ImageParser
 
             for(var i=0; i<symbolCount; i++)
             {
-                if (bytesRead >= length) { throw new Exception($"Error when parsing DHT symbol."); }
+                if (bytesRead >= length) { throw new Exception($"Error when parsing DHT symbol. (wrong symbol)"); }
                 byte count = reader.ReadByte();
                 bytesRead++;
                 huffmanTable.Symbols.Add(count);
             }
 
-
+            return huffmanTable;
         }
 
         private byte[] ReadCompressedData(BinaryReader reader) 

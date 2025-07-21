@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace aCodec.ImageType
 {
@@ -20,6 +21,19 @@ namespace aCodec.ImageType
         public ushort[] Values = new ushort[64];
     }
 
+    
+    internal class HuffmanTree
+    {
+        private class Node
+        {
+            public Node? Left;
+            public Node? Right;
+            public int? Symbol;
+        }
+
+        private readonly Node _root;
+    }
+
 
     internal class HuffmanTable
     {
@@ -30,7 +44,12 @@ namespace aCodec.ImageType
         public byte TableClass { get; set; }
         public byte TableId { get; set; }
         public List<byte> CodeLengths = new();
-        public List<byte> Symbols = new();
+        public List<byte> Symbols = new(); 
+
+        private void BuildHuffmanTree(List<byte> codeLengths, List<byte> Symbols)
+        {
+
+        }
     }
 
 
