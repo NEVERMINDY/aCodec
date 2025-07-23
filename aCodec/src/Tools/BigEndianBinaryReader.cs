@@ -12,7 +12,7 @@ namespace aCodec.Tools
         {
             byte high = reader.ReadByte();
             byte low = reader.ReadByte();
-            return (ushort) (high << 8 | low);
+            return (ushort)(high << 8 | low);
         }
     }
 }

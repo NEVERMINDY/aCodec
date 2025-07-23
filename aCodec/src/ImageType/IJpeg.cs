@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace aCodec.ImageType
 {
-    internal interface IJpeg : IImage
+    internal interface IJpeg: IImage
     {
         public void AddQuantizationTable(QuantizationTable qt);
 

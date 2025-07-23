@@ -9,7 +9,7 @@ using aCodec.Tools;
 
 namespace aCodec.ImageParser
 {
-    internal class JpegParser : IJpegParser
+    internal class JpegParser: IJpegParser
     {
         #region DI
         private readonly IBigEndianBinaryReader _bigEndianReader;
@@ -43,65 +43,57 @@ namespace aCodec.ImageParser
 
         public IImage Parse(string input)
         {
-            if (!File.Exists(input)){
+            if (!File.Exists(input)) {
                 throw new FileNotFoundException(input);
             }
 
-            try{
+            try {
                 using FileStream fs = new(input, FileMode.Open, FileAccess.Read);
-                using BinaryReader reader = new BinaryReader(fs); 
+                using BinaryReader reader = new BinaryReader(fs);
 
                 ushort marker = ReadMarker(reader);
-                if (marker != 0xFFD8) 
-                {
+                if (marker != 0xFFD8) {
                     Console.WriteLine($"{Path.GetFileName(input)} is not a jpeg file. (missing SOI)");
                 }
 
-                ushort height=1, width = 1;
-                byte[] imageData = new byte[height*width];
+                ushort height = 1, width = 1;
+                byte[] imageData = new byte[height * width];
                 IJpeg jpeg = new Jpeg();
-                while (reader.BaseStream.Position < reader.BaseStream.Length)
-                {
+                while (reader.BaseStream.Position < reader.BaseStream.Length) {
                     marker = ReadMarker(reader);
                     // EOI
-                    if (marker == 0xFFD9)
-                    {
+                    if (marker == 0xFFD9) {
                         Console.WriteLine($"Marker: {marker: X4} - {Marker[marker]}");
                     }
 
                     //SOF0
-                    if (marker == 0xFFC0)
-                    {
+                    if (marker == 0xFFC0) {
                         (height, width) = ParseSOF0(reader);
                     }
                     //SOS (start of scan)
-                    else if(marker == 0xFFDA)
-                    {
+                    else if (marker == 0xFFDA) {
                         imageData = ReadCompressedData(reader);
                     }
                     //DQT
-                    else if(marker == 0xFFDB)
-                    {
+                    else if (marker == 0xFFDB) {
                         var length = _bigEndianReader.ReadBigEndianUInt16(reader);
                         var qt = ParseDQT(reader, length - 2);
                         jpeg.AddQuantizationTable(qt);
                     }
                     //DHT
-                    else if(marker == 0xFFC4)
-                    {
+                    else if (marker == 0xFFC4) {
                         var length = _bigEndianReader.ReadBigEndianUInt16(reader);
-                        var huffmanTable = ParseDHT(reader, length-2);
+                        var huffmanTable = ParseDHT(reader, length - 2);
                         jpeg.AddHuffmanTable(huffmanTable);
                     }
-                    else
-                    {
+                    else {
                         int length = reader.ReadUInt16();
                         reader.BaseStream.Seek(length - 2, SeekOrigin.Current);
                     }
                 }
                 return jpeg;
             }
-            catch(Exception ex){
+            catch (Exception ex) {
                 Console.WriteLine(ex.ToString());
                 byte[] fakeData = new byte[1024];
                 //return a fake jpeg
@@ -112,29 +104,28 @@ namespace aCodec.ImageParser
 
         #region private methods
 
-        private ushort ReadMarker(BinaryReader reader){
+        private ushort ReadMarker(BinaryReader reader)
+        {
             byte code;
             code = reader.ReadByte();
             //keep reading until first 0xFF
-            while(code != _jpegPrefix)
-            {
+            while (code != _jpegPrefix) {
                 code = reader.ReadByte();
             }//code = 0xFF
 
             //keep reading until code byte 
-            while (code == 0xFF)
-            {
+            while (code == 0xFF) {
                 code = reader.ReadByte();
             }//code is the first byte after 0xFF(s)
 
             return (ushort)((_jpegPrefix << 8) | code);
         }
 
-        private (ushort, ushort) ParseSOF0(BinaryReader reader) 
+        private (ushort, ushort) ParseSOF0(BinaryReader reader)
         {
             ushort length = reader.ReadUInt16();    //segment length
             byte precision = reader.ReadByte();     //precision, usually 8(bit)
-            ushort height = reader.ReadUInt16();    
+            ushort height = reader.ReadUInt16();
             ushort width = reader.ReadUInt16();
             byte components = reader.ReadByte();    // usually 3 (YCbCr)
 
@@ -146,7 +137,7 @@ namespace aCodec.ImageParser
              * components: 1 byte.
              * 8 bytes in total.
              */
-            reader.BaseStream.Seek(length- (2+1+2+2+1), SeekOrigin.Current);
+            reader.BaseStream.Seek(length - (2 + 1 + 2 + 2 + 1), SeekOrigin.Current);
 
             return (width, height);
         }
@@ -165,31 +156,29 @@ namespace aCodec.ImageParser
         /// <param name="length">FF DB (** **) data </param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        private QuantizationTable ParseDQT(BinaryReader reader, int length){
+        private QuantizationTable ParseDQT(BinaryReader reader, int length)
+        {
             int bytesRead = 0;
-            if (bytesRead > length){ throw new Exception($"Error when parsing DQT. (Invalid length)"); }
-            
-            byte firstByte = reader.ReadByte(); 
+            if (bytesRead > length) { throw new Exception($"Error when parsing DQT. (Invalid length)"); }
+
+            byte firstByte = reader.ReadByte();
             bytesRead++;
 
             byte precision = (byte)(firstByte >> 4);
             byte tableId = (byte)(firstByte & 0x0F);
-            var qTable = new QuantizationTable() 
+            var qTable = new QuantizationTable()
             {
                 Precision = precision,
                 TableId = tableId,
             };
-            
+
             var size = precision == 0 ? 1 : 2;
-            while (bytesRead < length) 
-            {
+            while (bytesRead < length) {
                 var i = (bytesRead - 1) / size;
-                if(size == 1)
-                {
+                if (size == 1) {
                     qTable.Values[i] = reader.ReadByte();
                 }
-                else
-                {
+                else {
                     qTable.Values[i] = _bigEndianReader.ReadBigEndianUInt16(reader);
                 }
                 bytesRead += size;
@@ -211,9 +200,9 @@ namespace aCodec.ImageParser
         /// <param name="length"></param>
         /// <returns></returns>
         private HuffmanTable ParseDHT(BinaryReader reader, int length)
-        { 
+        {
             int bytesRead = 0;
-            if (bytesRead > length){ throw new Exception($"Error when parsing DHT. (Invalid length)"); }
+            if (bytesRead > length) { throw new Exception($"Error when parsing DHT. (Invalid length)"); }
             if (length < 17) { throw new Exception($"Error when parsing DHT. (length < 17)"); }
 
             byte firstByte = reader.ReadByte();
@@ -228,16 +217,14 @@ namespace aCodec.ImageParser
             };
 
             var symbolCount = 0;
-            for (var i=0; i<16; i++)
-            {
+            for (var i = 0; i < 16; i++) {
                 if (bytesRead >= length) { throw new Exception($"Error when parsing DHT code. (wrong code array)"); }
                 byte count = reader.ReadByte();
                 bytesRead++;
                 huffmanTable.CodeLengths.Add(count);
             }
 
-            for(var i=0; i<symbolCount; i++)
-            {
+            for (var i = 0; i < symbolCount; i++) {
                 if (bytesRead >= length) { throw new Exception($"Error when parsing DHT symbol. (wrong symbol)"); }
                 byte count = reader.ReadByte();
                 bytesRead++;
@@ -247,28 +234,26 @@ namespace aCodec.ImageParser
             return huffmanTable;
         }
 
-        private byte[] ReadCompressedData(BinaryReader reader) 
+        private byte[] ReadCompressedData(BinaryReader reader)
         {
             using MemoryStream ms = new MemoryStream();
 
-            
-            while (reader.BaseStream.Position < reader.BaseStream.Length)
-            {
+
+            while (reader.BaseStream.Position < reader.BaseStream.Length) {
                 byte b = reader.ReadByte();
 
-                if (b != 0xFF)
-                {
+                if (b != 0xFF) {
                     ms.WriteByte(b);
                     continue;
                 }
                 //b = 0xFF
                 byte next = reader.ReadByte();
-                
-                if (next == 0x00) { 
+
+                if (next == 0x00) {
                     ms.WriteByte(0xFF);
                     continue;
-                } else if(next == 0xD9)
-                {
+                }
+                else if (next == 0xD9) {
                     break;
                 }
                 else//unexpected marker

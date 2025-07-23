@@ -53,7 +53,7 @@ namespace aCodec.ImageType
     }
 
 
-    internal class Jpeg : IJpeg
+    internal class Jpeg: IJpeg
     {
         #region IImage properties
 
