@@ -21,22 +21,60 @@ namespace aCodec.ImageType
         public ushort[] Values = new ushort[64];
     }
 
-    
+
     internal class HuffmanTree
     {
         private class Node
         {
             public Node? Left;
             public Node? Right;
-            public int? Symbol;
+            public int? Symbol;     //not leaf if null
         }
 
         private readonly Node _root;
+
+        private void AddCode(int code, int length, byte symbol)
+        {
+            Node current = _root;
+            for (var i = length - 1; i >= 0; i--) {
+                int bit = (code >> i) & 1;
+
+            }
+        }
+
+        public HuffmanTree(byte[] codeLengths, byte[] symbols)
+        {
+            //length of codeLengths should always be 16
+            if (codeLengths.Length != 16) {
+                throw new Exception($"Error when Building HuffmanTree. (invalid codelength)");
+            }
+
+            var code = 0;
+            var symbolIndex = 0;
+            for (var i = 0; i<16; i++) {
+                if (codeLengths[i] == 0x00) {
+                    continue;
+                }
+
+                var bitLength = i + 1;
+                var numOfThisLength = codeLengths[i];
+                for (var j = 0; j < numOfThisLength; j++) {
+                    if (symbolIndex > symbols.Length) {
+                        throw new Exception($"Error when Building HuffmanTree. (index of symbols out of range)");
+                    }
+                    AddCode(code, bitLength, symbols[symbolIndex++]);
+                    code++;
+                }
+                code <<= 1;
+            }
+            
+        }
     }
 
 
     internal class HuffmanTable
     {
+        private Dictionary<ushort, ushort> lookupTable;
         /// <summary>
         /// 0: DC
         /// 1: AC
@@ -44,9 +82,9 @@ namespace aCodec.ImageType
         public byte TableClass { get; set; }
         public byte TableId { get; set; }
         public List<byte> CodeLengths = new();
-        public List<byte> Symbols = new(); 
+        public List<byte> Symbols = new();
 
-        private void BuildHuffmanTree(List<byte> codeLengths, List<byte> Symbols)
+        private HuffmanTree BuildHuffmanTree(List<byte> codeLengths, List<byte> Symbols)
         {
 
         }
