@@ -70,6 +70,15 @@ namespace aCodec.ImageParser
                     if (marker == 0xFFC0) {
                         (height, width) = ParseSOF0(reader);
                     }
+                    //
+                    else if (marker == 0xFFDD){
+                        var length = _bigEndianReader.ReadBigEndianUInt16(reader);
+                        if (length != 4){
+                            throw new Exception("Invalid DRI length.");
+                        }
+                        var restartInterval = _bigEndianReader.ReadBigEndianUInt16(reader);
+                        jpeg.RestartInterval = restartInterval;
+                    }
                     //SOS (start of scan)
                     else if (marker == 0xFFDA) {
                         imageData = ReadCompressedData(reader);
@@ -255,6 +264,9 @@ namespace aCodec.ImageParser
                 }
                 else if (next == 0xD9) {
                     break;
+                }
+                else if (next >= 0xD0 && next <= 0xD7){
+                    continue;
                 }
                 else//unexpected marker
                 {

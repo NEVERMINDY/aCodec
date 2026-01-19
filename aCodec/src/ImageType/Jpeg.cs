@@ -102,7 +102,7 @@ namespace aCodec.ImageType
         #endregion
 
         #region IJpeg properties
-
+        public ushort RestartInterval { get; set; } = 0;
         #endregion
 
         #region private fields
